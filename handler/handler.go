@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"filstore-server/meta"
 	"filstore-server/util"
 	"fmt"
@@ -60,4 +61,18 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 // UploadSucHandler 上传完成
 func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Upload finished!")
+}
+
+// GetFileMetaHandler 获取文件元信息
+func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
+	// 将参数Parse到Form中
+	r.ParseForm()
+	filehash := r.Form["filehash"][0]
+	fMeta := meta.GetFileMeta(filehash)
+	data, err := json.Marshal(fMeta)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
 }
