@@ -67,12 +67,36 @@ func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 func GetFileMetaHandler(w http.ResponseWriter, r *http.Request) {
 	// 将参数Parse到Form中
 	r.ParseForm()
-	filehash := r.Form["filehash"][0]
-	fMeta := meta.GetFileMeta(filehash)
+	fSha1 := r.Form["filehash"][0]
+	fMeta := meta.GetFileMeta(fSha1)
 	data, err := json.Marshal(fMeta)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Write(data)
+}
+
+// DownloadHandler 文件下载
+func DownloadHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fSha1 := r.Form.Get("filehash")
+	fm := meta.GetFileMeta(fSha1)
+
+	f, err := os.Open(fm.Location)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// 修改http头
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("content-descrption", "attachment;filename=\""+fm.FileName+"\"")
 	w.Write(data)
 }
