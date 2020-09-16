@@ -97,6 +97,6 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// 修改http头
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("content-descrption", "attachment;filename=\""+fm.FileName+"\"")
+	w.Header().Set("Content-Disposition", "attachment;filename=\""+fm.FileName+"\"")
 	w.Write(data)
 }
