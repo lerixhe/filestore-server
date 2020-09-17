@@ -60,16 +60,27 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("FAILED"))
 		return
 	}
-	// 重定向到首页
-
-	// http.Redirect(w, r, "/static/view/home.html", http.StatusFound)
-	// http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
 	// 由客户端重定向到首页
-	w.Write([]byte("{\"Location\":\"http://" + r.Host + "/static/view/home.html\"}"))
+	// w.Write([]byte("{\"Location\":\"http://" + r.Host + "/static/view/home.html\"}"))
+	resp := util.NewResMsg(
+		0,
+		"OK",
+		struct {
+			Location string
+			Username string
+			Token    string
+		}{
+			"http://" + r.Host + "/static/view/home.html",
+			username,
+			token,
+		},
+	)
+	w.Write(resp.JSONBytes())
 
 }
 
 // GenToken 生成token
+
 func GenToken(username string) string {
 	// 规则：40位字符=md5(username+timestamp+token_salt)+timestamp[:8]
 	ts := fmt.Sprintf("%d", time.Now().Unix())
