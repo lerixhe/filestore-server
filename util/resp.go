@@ -7,9 +7,9 @@ import (
 
 // ResMsg http响应的通用结构
 type ResMsg struct {
-	Code int         `json:"code,omitempty"`
-	Msg  string      `json:"msg,omitempty"`
-	Data interface{} `json:"data,omitempty"`
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
 }
 
 // NewResMsg 生成response对象

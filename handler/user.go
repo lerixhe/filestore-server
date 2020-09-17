@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -76,14 +77,56 @@ func SignInHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 	w.Write(resp.JSONBytes())
-
 }
 
 // GenToken 生成token
-
 func GenToken(username string) string {
 	// 规则：40位字符=md5(username+timestamp+token_salt)+timestamp[:8]
 	ts := fmt.Sprintf("%d", time.Now().Unix())
 	tokenPrefix := util.MD5([]byte(username + ts + tokenSalt))
 	return tokenPrefix + ts[:8]
+}
+
+// UserInfoHandler 处理用户信息请求
+func UserInfoHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	username := r.Form.Get("username")
+	token := r.Form.Get("token")
+	if !IsTokenValid(username, token) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	user := dblayer.GetUserInfo(username)
+	if user == nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	resp := util.NewResMsg(0, "OK", *user)
+
+	w.Write(resp.JSONBytes())
+}
+
+// IsTokenValid 验证token有效性
+func IsTokenValid(username, token string) bool {
+	// 1.判断是否过期
+	// 2.判断是否能从数据库查到
+	ts := fmt.Sprintf("%d", time.Now().Unix())
+	now, err := strconv.Atoi(ts[len(ts)-8:])
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	then, err := strconv.Atoi(token[32:])
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	if now-then >= 24*60*60 {
+		return false
+	}
+
+	if !dblayer.TokenExist(username, token) {
+		return false
+	}
+	return true
 }
