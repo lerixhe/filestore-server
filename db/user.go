@@ -29,3 +29,47 @@ func UserSignUp(userName, passwd string) bool {
 	}
 	return true
 }
+
+// UserSignin 判断数据库密码是否一致
+func UserSignin(username, encpwd string) bool {
+	sql := "select * from tbl_user where user_name=? limit 1"
+	stmt, err := mydb.DBConn().Prepare(sql)
+	if err != nil {
+		fmt.Printf("Prepare err:%v\n", err)
+		return false
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(username)
+	if err != nil {
+		fmt.Printf("Query err:%v\n", err)
+		return false
+	} else if rows == nil {
+		fmt.Printf("username no found: %s\n", username)
+		rows.Close()
+		return false
+	}
+	defer rows.Close()
+	r := mydb.ParseRows(rows)
+	if len(r) > 0 && string(r[0]["user_pwd"].([]byte)) == encpwd {
+		return true
+	}
+	return false
+}
+
+// UpdateToken 刷新用户的token到数据库
+func UpdateToken(username, token string) bool {
+	sql := "replace into tbl_user_token(`user_name`,`user_token`)values(?,?)"
+	stmt, err := mydb.DBConn().Prepare(sql)
+	if err != nil {
+		fmt.Printf("Prepare err:%v\n", err)
+		return false
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(username, token)
+	if err != nil {
+		fmt.Printf("Failed to exec replace into token,err:%v\n", err)
+		return false
+	}
+	return true
+}
