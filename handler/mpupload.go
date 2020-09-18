@@ -45,13 +45,13 @@ func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 		FileSize:   filesize,
 		UploadID:   username + fmt.Sprintf("%x", time.Now().UnixNano()),
 		ChunkSize:  5 * 1024 * 1024, //5MB
-		ChunkCount: int(math.Ceil(float64(filesize) / 5 * 1024 * 1024)),
+		ChunkCount: int(math.Ceil(float64(filesize) / (5 * 1024 * 1024))),
 	}
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "chunkcount", upInfo.ChunkCount)
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "filehash", upInfo.FileHash)
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "filesize", upInfo.FileSize)
 
-	w.Write(util.GenSimpleResStream(0, "OK"))
+	w.Write(util.NewResMsg(0, "OK", upInfo).JSONBytes())
 }
 
 // UploadPartHandler 上传文件分块
