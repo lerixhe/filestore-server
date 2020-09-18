@@ -174,3 +174,30 @@ func FileQueryHandler(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println(userFiles)
 	w.Write(data)
 }
+
+// TryFastUploadHandler 尝试秒传接口
+func TryFastUploadHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	username := r.Form.Get("username")
+	filehash := r.Form.Get("filehash")
+	filename := r.Form.Get("filename")
+	filesize, _ := strconv.Atoi(r.Form.Get("filesize"))
+
+	f, err := dblayer.GetFileMeta(filehash)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if f == nil {
+		w.Write(util.GenSimpleResStream(-1, "秒传失败，请访问普通上传接口"))
+		return
+	}
+
+	if !dblayer.OnUserFileUploadFinished(username, filehash, filename, int64(filesize)) {
+		w.Write(util.GenSimpleResStream(-2, "秒传失败，请稍后重试"))
+		return
+	}
+	w.Write(util.GenSimpleResStream(0, "秒传成功"))
+
+}

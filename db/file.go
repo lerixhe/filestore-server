@@ -46,6 +46,10 @@ func GetFileMeta(fileHash string) (*TableFile, error) {
 	var f TableFile
 	err = stmt.QueryRow(fileHash).Scan(&f.FileHash, &f.FileName, &f.FileAddr, &f.FileSize)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// 查不到对应记录， 返回参数及错误均为nil
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &f, nil
