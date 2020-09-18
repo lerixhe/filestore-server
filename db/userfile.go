@@ -33,3 +33,29 @@ func OnUserFileUploadFinished(username, filehash, filename string, filesize int6
 	return true
 
 }
+
+// QueryUserFileMetas 从数据库中查询用户的文件列表
+func QueryUserFileMetas(username string, limit int) ([]UserFile, error) {
+	sql := "select file_sha1,file_name,file_size,upload_at,last_update from tbl_user_file where user_name = ? limit ?"
+	stmt, err := mydb.DBConn().Prepare(sql)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	rows, err := stmt.Query(username, limit)
+	if err != nil {
+		return nil, err
+	}
+	var userfiles []UserFile
+	for rows.Next() {
+		var userfile UserFile
+		err := rows.Scan(&userfile.FileHash, &userfile.FileName, &userfile.FileSize, &userfile.UploadAt, &userfile.LastUpdated)
+		if err != nil {
+			fmt.Println(err)
+			// 使用break，继续处理下一行
+			break
+		}
+		userfiles = append(userfiles, userfile)
+	}
+	return userfiles, nil
+}
