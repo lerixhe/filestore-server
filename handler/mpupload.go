@@ -3,13 +3,17 @@ package handler
 import (
 	"bufio"
 	rPool "filstore-server/cache/redis"
+	dblayer "filstore-server/db"
 	"filstore-server/util"
 	"fmt"
 	"math"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/garyburd/redigo/redis"
 )
 
 // MultipartUploadInfo 分块信息
@@ -52,7 +56,7 @@ func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 // UploadPartHandler 上传文件分块
 func UploadPartHandler(w http.ResponseWriter, r http.Request) {
 	r.ParseForm()
-	username := r.Form.Get("username")
+	// username := r.Form.Get("username")
 	uploadID := r.Form.Get("uploadid")
 	chunkIndex := r.Form.Get("index")
 
@@ -60,7 +64,8 @@ func UploadPartHandler(w http.ResponseWriter, r http.Request) {
 	defer rConn.Close()
 
 	// 获取文件句柄，用于存储分块内容
-	fd, err := os.Create("./data/" + uploadID + "/" + chunkIndex)
+	fpath := "./data/" + uploadID + "/" + chunkIndex
+	fd, err := os.Create(fpath)
 	if err != nil {
 		w.Write(util.GenSimpleResStream(-1, "Upload part failed:"+err.Error()))
 		return
@@ -75,6 +80,44 @@ func UploadPartHandler(w http.ResponseWriter, r http.Request) {
 	}
 
 	rConn.Do("HSET", "MP_"+uploadID, "chkidx_"+chunkIndex, 1)
+	w.Write(util.GenSimpleResStream(0, "OK"))
+
+}
+
+// CompleteUploadHandler 通知上传合并
+func CompleteUploadHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	username := r.Form.Get("username")
+	uploadID := r.Form.Get("uploadid")
+	filehash := r.Form.Get("filehash")
+	filesize := r.Form.Get("filesize")
+	filename := r.Form.Get("filename")
+
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+	data, err := redis.Values(rConn.Do("HGETALL", "MP_"+uploadID))
+	if err != nil {
+		w.Write(util.GenSimpleResStream(-1, "complete upload failed:"+err.Error()))
+		return
+	}
+	totalCount, ChunkCount := 0, 0
+	for i := 0; i < len(data); i += 2 {
+		k := string(data[i].([]byte))
+		v := string(data[i+1].([]byte))
+		if k == "chunkcount" {
+			totalCount, _ = strconv.Atoi(v)
+		} else if strings.HasPrefix(k, "chkidx_") && v == "1" {
+			ChunkCount++
+		}
+	}
+	if totalCount != ChunkCount {
+		w.Write(util.GenSimpleResStream(-2, "invalid request"))
+		return
+	}
+	// 更新唯一文件表和用户文件表
+	fsize, _ := strconv.Atoi(filesize)
+	dblayer.OnFileUploadFinished(filehash, filename, "", int64(fsize))
+	dblayer.OnUserFileUploadFinished(username, filehash, filename, int64(fsize))
 	w.Write(util.GenSimpleResStream(0, "OK"))
 
 }
