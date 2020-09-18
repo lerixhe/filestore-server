@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"bufio"
 	rPool "filstore-server/cache/redis"
 	"filstore-server/util"
 	"fmt"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -45,4 +47,34 @@ func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 	rConn.Do("HSET", "MP_"+upInfo.UploadID, "filesize", upInfo.FileSize)
 
 	w.Write(util.GenSimpleResStream(0, "OK"))
+}
+
+// UploadPartHandler 上传文件分块
+func UploadPartHandler(w http.ResponseWriter, r http.Request) {
+	r.ParseForm()
+	username := r.Form.Get("username")
+	uploadID := r.Form.Get("uploadid")
+	chunkIndex := r.Form.Get("index")
+
+	rConn := rPool.RedisPool().Get()
+	defer rConn.Close()
+
+	// 获取文件句柄，用于存储分块内容
+	fd, err := os.Create("./data/" + uploadID + "/" + chunkIndex)
+	if err != nil {
+		w.Write(util.GenSimpleResStream(-1, "Upload part failed:"+err.Error()))
+		return
+	}
+	defer fd.Close()
+
+	bw := bufio.NewWriterSize(fd, 1024*1024)
+	_, err = bw.ReadFrom(r.Body)
+	if err != nil {
+		w.Write(util.GenSimpleResStream(-1, "Upload part failed:"+err.Error()))
+		return
+	}
+
+	rConn.Do("HSET", "MP_"+uploadID, "chkidx_"+chunkIndex, 1)
+	w.Write(util.GenSimpleResStream(0, "OK"))
+
 }
