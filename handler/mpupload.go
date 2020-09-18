@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -54,7 +55,7 @@ func InitialMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadPartHandler 上传文件分块
-func UploadPartHandler(w http.ResponseWriter, r http.Request) {
+func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	// username := r.Form.Get("username")
 	uploadID := r.Form.Get("uploadid")
@@ -65,6 +66,7 @@ func UploadPartHandler(w http.ResponseWriter, r http.Request) {
 
 	// 获取文件句柄，用于存储分块内容
 	fpath := "./data/" + uploadID + "/" + chunkIndex
+	os.MkdirAll(path.Dir(fpath), 0744)
 	fd, err := os.Create(fpath)
 	if err != nil {
 		w.Write(util.GenSimpleResStream(-1, "Upload part failed:"+err.Error()))

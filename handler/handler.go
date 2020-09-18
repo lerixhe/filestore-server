@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"time"
 )
@@ -37,6 +38,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
 		}
 		// 创建新文件句柄
+		os.MkdirAll(path.Dir(fileMeta.Location), 0744)
 		newFile, err := os.Create(fileMeta.Location)
 		if err != nil {
 			fmt.Printf("failed to create new file %s,err:%v\n", head.Filename, err)
