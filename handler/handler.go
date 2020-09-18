@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	dblayer "filstore-server/db"
 	"filstore-server/meta"
 	"filstore-server/util"
 	"fmt"
@@ -51,6 +52,15 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		newFile.Seek(0, 0)
 		fileMeta.FileSha1 = util.FileSha1(newFile)
 		meta.UpdateFileMetaDB(fileMeta)
+
+		// TODO:更新用户文件表记录
+		r.ParseForm()
+		username := r.Form.Get("username")
+		if !dblayer.OnUserFileUploadFinished(username, fileMeta.FileSha1, fileMeta.FileName, fileMeta.FileSize) {
+			io.WriteString(w, "Upload Failed")
+			return
+		}
+
 		fmt.Printf("upload file succeed!,total %.2f KB\n", float64(fileMeta.FileSize)/1024)
 		// 跳转结果页
 		http.Redirect(w, r, "/file/upload/suc", http.StatusFound)
