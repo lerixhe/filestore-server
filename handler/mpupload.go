@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bufio"
 	rPool "filstore-server/cache/redis"
 	dblayer "filstore-server/db"
 	"filstore-server/util"
@@ -74,11 +73,13 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer fd.Close()
 
-	bw := bufio.NewWriterSize(fd, 1024*1024)
-	_, err = bw.ReadFrom(r.Body)
-	if err != nil {
-		w.Write(util.GenSimpleResStream(-1, "Upload part failed:"+err.Error()))
-		return
+	buf := make([]byte, 1024*1024)
+	for {
+		n, err := r.Body.Read(buf)
+		fd.Write(buf[:n])
+		if err != nil {
+			break
+		}
 	}
 
 	rConn.Do("HSET", "MP_"+uploadID, "chkidx_"+chunkIndex, 1)

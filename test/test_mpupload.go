@@ -77,10 +77,10 @@ func multipartUpload(filename string, targetURL string, chunkSize int) error {
 
 func main() {
 	username := "admin"
-	token := "db8407718f1dcee88010174cdb8e20d016004110"
-	filehash := "b6fccf73fdc488e69c977f29dabb79abecaa131a"
-	filesize := "46544904"
-	filename := "Git-2.25.1-64-bit.exe"
+	token := "41facd8e83ac4a17f2adf46cb3c47baf16004474"
+	filehash := "d3d94b472cca3213b5815e599f5bd5f2ee6b3962"
+	filesize := "92139376"
+	filename := "WeChatSetup.exe"
 
 	// 1. 请求初始化分块上传接口
 	resp, err := http.PostForm(
